@@ -13,3 +13,4 @@ output/analysis/
 output/logs/
 *.sqlite-wal
 *.sqlite-shm
+Spider2/spider2-lite/resource/local_sqlite.zip
