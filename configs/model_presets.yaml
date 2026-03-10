@@ -1,0 +1,32 @@
+primary:
+  openai:
+    provider: OpenAI
+    model_id: gpt-5.1
+    use_case: Main benchmark model for GPT-family runs.
+  google:
+    provider: Google
+    model_id: gemini-2.5-pro
+    use_case: Main benchmark model for Gemini runs.
+  deepseek:
+    provider: DeepSeek
+    model_id: deepseek-reasoner
+    use_case: Main benchmark model for DeepSeek reasoning runs.
+
+budget:
+  openai:
+    provider: OpenAI
+    model_id: gpt-5-mini
+    use_case: Budget / ablation / higher-volume replication.
+  google:
+    provider: Google
+    model_id: gemini-2.5-flash-lite
+    use_case: Budget / ablation / faster reruns.
+  deepseek:
+    provider: DeepSeek
+    model_id: deepseek-chat
+    use_case: Budget / non-thinking DeepSeek baseline.
+
+manual_web_logging_rules:
+  - Log the exact UI label shown at test time.
+  - Do not rename a web/app label to an API snapshot unless you verified it.
+  - Record the visible provider, model label, and test date in the workbook.

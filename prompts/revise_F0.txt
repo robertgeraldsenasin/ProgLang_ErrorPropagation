@@ -1,0 +1,10 @@
+Previous SQL:
+```sql
+{previous_sql}
+```
+
+Execution feedback:
+Result: FAIL.
+
+Revise the SQL to correctly answer the question.
+Return ONE SQL query only inside one ```sql``` code block.

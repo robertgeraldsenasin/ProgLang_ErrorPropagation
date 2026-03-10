@@ -1,0 +1,3 @@
+run_id,batch_id,task_id,db_name,model_id,model_snapshot,protocol_id,temperature,reasoning_mode,T_max,replicate,operator,planned_date,record_file,artifact_folder,commit_hash,status,notes
+LOCAL001-GPT-5-1-F1-R1,MAIN,local001,sqlite-demo,gpt-5.1,gpt-5.1,F1,0,none,5,1,,2026-03-11,,runs\LOCAL001-GPT-5-1-F1-R1,,In progress,
+LOCAL001-GPT-5-1-F1-R1,MAIN,local001,sqlite-demo,gpt-5.1,gpt-5.1,F1,0,none,5,1,,2026-03-11,,runs\LOCAL001-GPT-5-1-F1-R1,,Complete,final_state=Pass; pass_turn=1

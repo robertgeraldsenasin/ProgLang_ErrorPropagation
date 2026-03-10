@@ -1,0 +1,2 @@
+run_id,task_id,model_id,protocol_id,logged_turns,first_pass_turn,final_turn,final_state,regressions,stability_checks
+LOCAL001-GPT-5-1-F1-R1,local001,gpt-5.1,F1,1,1,1,Pass,0,3

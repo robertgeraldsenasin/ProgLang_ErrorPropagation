@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+.idea/
+.vscode/
+output/prompts/
+output/responses/
+output/sql/
+output/feedback/
+output/screens/
+output/analysis/
+output/logs/
+*.sqlite-wal
+*.sqlite-shm

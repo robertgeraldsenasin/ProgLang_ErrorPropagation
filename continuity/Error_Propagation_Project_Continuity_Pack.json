@@ -1,0 +1,50 @@
+{
+  "project_title": "Error Propagation in Iterative GenAI Text-to-SQL Refinement",
+  "dataset": {
+    "name": "Spider2-Lite",
+    "subset": "SQLite/local subset",
+    "jsonl": "Spider2/spider2-lite/spider2-lite.jsonl",
+    "sqlite_root": "Spider2/spider2-lite/resource/databases/spider2-localdb"
+  },
+  "main_references": [
+    "SELF-DEBUGGING",
+    "DebugBench",
+    "QuixBugs / Codex lineage",
+    "Spider2 / Spider2-Lite"
+  ],
+  "feedback_conditions": [
+    "F0",
+    "F1",
+    "F2",
+    "F3"
+  ],
+  "error_states": [
+    "FormatError",
+    "SyntaxError",
+    "SchemaError",
+    "RuntimeError",
+    "Timeout",
+    "WrongResult",
+    "Pass"
+  ],
+  "t_max": 5,
+  "models_current": [
+    "chatgpt-free-gpt-5.2",
+    "gemini-web-2.5-pro",
+    "deepseek-web-chat"
+  ],
+  "best_workbook": "Experiment_Logbook_Template_v7.xlsx",
+  "best_starter_kit": "spider2_sqlite_starter_kit_manual.zip",
+  "latest_paper_files": [
+    "main_v8.tex",
+    "main_v8.pdf",
+    "Overleaf_Project_Error_Propagation_v8.zip"
+  ],
+  "next_commands": [
+    ".\\Spider2\\.venv\\Scripts\\Activate.ps1",
+    "python -m pip install --upgrade pip",
+    "python -m pip install -r .\\requirements.txt",
+    "python -c \"import pandas; print(pandas.__version__)\"",
+    "python .\\scripts\\03_run_trajectory_manual.py --model-label \"chatgpt-free-gpt-5.2\" --instance-id local056 --condition F1 --t-max 5 --spider2-root .\\Spider2 --out-dir .\\output"
+  ]
+}

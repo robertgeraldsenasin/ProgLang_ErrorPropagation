@@ -1,0 +1,4 @@
+run_id,pass_turn,check_type,repeat_no,outcome_state,stable_pass?,evidence_file,notes
+LOCAL001-GPT-5-1-F1-R1,1,Re-execution,1,Pass,Yes,sql\LOCAL001-GPT-5-1-F1-R1_turn01.sql,
+LOCAL001-GPT-5-1-F1-R1,1,Re-execution,2,Pass,Yes,sql\LOCAL001-GPT-5-1-F1-R1_turn01.sql,
+LOCAL001-GPT-5-1-F1-R1,1,Re-execution,3,Pass,Yes,sql\LOCAL001-GPT-5-1-F1-R1_turn01.sql,

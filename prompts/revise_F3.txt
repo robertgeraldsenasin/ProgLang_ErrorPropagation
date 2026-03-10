@@ -1,0 +1,10 @@
+Previous SQL:
+```sql
+{previous_sql}
+```
+
+Execution feedback:
+{feedback_payload}
+
+First write 2-4 bullet points diagnosing why the SQL is wrong.
+Then output the corrected SQL only inside one ```sql``` code block.

@@ -1,0 +1,16 @@
+You are a data analyst. Produce a single SQLite-compatible SQL query that answers the question.
+Rules:
+- Output ONLY the SQL query inside one ```sql``` code block.
+- Do not include explanations.
+- Use only tables/columns that exist in the provided schema.
+
+Database: {db_name}
+Dialect: SQLite
+
+Schema:
+{schema_dump}
+
+Question:
+{question}
+
+Return ONE SQL query only.
