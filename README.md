@@ -1,6 +1,7 @@
 # Error Propagation in Iterative GenAI Text-to-SQL Refinement
 
 A runnable research repo for **manual or low-cost iterative Text-to-SQL testing** on the **Spider2-Lite SQLite subset** with:
+
 - a **manual trajectory runner** for ChatGPT / Gemini / DeepSeek web or API-assisted workflows,
 - a **workbook sync pipeline** so every run is documented cleanly,
 - **analysis scripts** for propagation, regressions, and stability,
@@ -10,6 +11,7 @@ A runnable research repo for **manual or low-cost iterative Text-to-SQL testing*
 ## What this repo is for
 
 This project studies whether iterative SQL refinement:
+
 1. reduces errors monotonically,
 2. oscillates between failure modes,
 3. or introduces regressions while trying to fix earlier mistakes.
@@ -41,6 +43,7 @@ For **budget-sensitive replication / ablations**:
 For **manual browser testing**, log the **exact UI label shown** at test time and store it in the workbook. Do not silently map web/app labels to API snapshot IDs.
 
 See:
+
 - `docs/MODEL_SELECTION.md`
 - `configs/model_presets.yaml`
 
@@ -109,6 +112,7 @@ pytest
 The manual runner is designed for **browser-based testing** when you do not want to pay for APIs.
 
 For each turn it will:
+
 1. create the prompt file,
 2. tell you where the prompt was saved,
 3. wait for you to paste the model response,
@@ -138,6 +142,7 @@ The workbook lives at:
 - `workbook/Experiment_ProgLang_Error_Propagation_repo.xlsx`
 
 It includes:
+
 - `START HERE`
 - `Data Entry Guide`
 - `Setup Checklist`
@@ -154,6 +159,7 @@ It includes:
 
 The sync script fills `Run Plan`, `Turn Log`, and `Stability Checks` from machine logs.  
 You still use the workbook to:
+
 - plan batches,
 - record operator / recording notes,
 - review failed runs,
@@ -162,6 +168,7 @@ You still use the workbook to:
 ## Included project continuity assets
 
 This repo also bundles the current project material so you can keep writing and testing from one place:
+
 - project continuity pack
 - current PDFs
 - SELF-DEBUGGING reference PDF
