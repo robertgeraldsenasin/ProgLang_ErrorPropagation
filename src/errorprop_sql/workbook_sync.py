@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from copy import copy
 from pathlib import Path
+from typing import Iterable
 
 import openpyxl
 
+from .task_loader import load_tasks_from_root
 from .utils import read_jsonl
 
 TURN_LOG_HEADERS = [
@@ -62,6 +64,21 @@ RUN_PLAN_HEADERS = [
     "notes",
 ]
 
+TASK_HEADERS = [
+    "task_id",
+    "dataset_split",
+    "db_name",
+    "db_path",
+    "question",
+    "schema_hash / version",
+    "oracle_result_file",
+    "difficulty_band",
+    "pilot?",
+    "main?",
+    "recording_segment",
+    "notes",
+]
+
 STABILITY_HEADERS = [
     "run_id",
     "pass_turn",
@@ -74,11 +91,27 @@ STABILITY_HEADERS = [
 ]
 
 
-def _first_blank_row(ws, key_col: int) -> int:
-    row = 5
+def _mark_for_recalc(wb) -> None:
+    calc = getattr(wb, "calculation", None)
+    if calc is not None:
+        calc.fullCalcOnLoad = True
+        calc.forceFullCalc = True
+
+
+def _first_blank_row(ws, key_col: int, start_row: int = 5) -> int:
+    row = start_row
     while ws.cell(row, key_col).value not in (None, ""):
         row += 1
     return row
+
+
+def _last_populated_row(ws, key_col: int, start_row: int = 5) -> int:
+    last = start_row - 1
+    for row in range(start_row, ws.max_row + 1):
+        value = ws.cell(row, key_col).value
+        if value not in (None, ""):
+            last = row
+    return last
 
 
 def _copy_row_style(ws, source_row: int, target_row: int, max_col: int) -> None:
@@ -96,6 +129,19 @@ def _copy_row_style(ws, source_row: int, target_row: int, max_col: int) -> None:
     ws.row_dimensions[target_row].height = ws.row_dimensions[source_row].height
 
 
+def _clear_row_values(ws, row: int, max_col: int, start_col: int = 1) -> None:
+    for c in range(start_col, max_col + 1):
+        ws.cell(row, c).value = None
+
+
+def _clear_rows_by_prefix(ws, key_col: int, prefixes: Iterable[str], max_col: int, start_row: int = 5) -> None:
+    prefixes = tuple(prefixes)
+    for row in range(start_row, ws.max_row + 1):
+        value = ws.cell(row, key_col).value
+        if isinstance(value, str) and value.startswith(prefixes):
+            _clear_row_values(ws, row, max_col)
+
+
 def _formulaify_turn_log_row(ws, row: int) -> None:
     ws[f"R{row}"] = f'=IF(Q{row}="","",IFERROR(VLOOKUP(Q{row},Lookups!$A$2:$B$8,2,FALSE),""))'
     ws[f"S{row}"] = f'=IF(B{row}="","",B{row}&"|"&TEXT(C{row},"00"))'
@@ -106,6 +152,14 @@ def _formulaify_turn_log_row(ws, row: int) -> None:
     ws[f"X{row}"] = f'=IF(V{row}="","",IF(R{row}<V{row},1,0))'
     ws[f"Y{row}"] = f'=IF(V{row}="","",IF(R{row}>V{row},1,0))'
     ws[f"Z{row}"] = f'=IF(Q{row}="","",IF(Q{row}="Pass",1,0))'
+
+
+def _has_informative_value(value) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str) and value.strip() == "":
+        return False
+    return True
 
 
 def _upsert_rows(
@@ -136,14 +190,11 @@ def _upsert_rows(
 
         for i, header in enumerate(headers, start=1):
             value = row.get(header)
-            if value is not None:
+            if _has_informative_value(value):
                 ws.cell(target, i).value = value
 
 
-def _ensure_run_summary_rows(ws, run_plan_ws) -> None:
-    target_last_row = max(run_plan_ws.max_row, 305)
-    template_row = 5
-
+def _set_run_summary_row_formulas(ws, row: int) -> None:
     formulas_by_col = {
         "A": "=IF('Run Plan'!A{r}=\"\",\"\",'Run Plan'!A{r})",
         "B": "=IF(A{r}=\"\",\"\",'Run Plan'!C{r})",
@@ -154,23 +205,138 @@ def _ensure_run_summary_rows(ws, run_plan_ws) -> None:
         "G": "=IF(A{r}=\"\",\"\",COUNTIF('Turn Log'!$B$5:$B$5000,A{r}))",
         "H": "=IF(A{r}=\"\",\"\",IFERROR(MINIFS('Turn Log'!$C$5:$C$5000,'Turn Log'!$B$5:$B$5000,A{r},'Turn Log'!$Q$5:$Q$5000,\"Pass\"),\"\"))",
         "I": "=IF(A{r}=\"\",\"\",IFERROR(MAXIFS('Turn Log'!$C$5:$C$5000,'Turn Log'!$B$5:$B$5000,A{r}),\"\"))",
-        "J": "=IF(A{r}=\"\",\"\",IFERROR(INDEX('Turn Log'!$Q$5:$Q$5000,MATCH(1,('Turn Log'!$B$5:$B$5000=A{r})*('Turn Log'!$C$5:$C$5000=I{r}),0)),\"\"))",
-        "K": "=IF(A{r}=\"\",\"\",IFERROR(INDEX('Turn Log'!$R$5:$R$5000,MATCH(1,('Turn Log'!$B$5:$B$5000=A{r})*('Turn Log'!$C$5:$C$5000=I{r}),0)),\"\"))",
+        "J": "=IF(A{r}=\"\",\"\",IFERROR(INDEX('Turn Log'!$Q$5:$Q$5000,MATCH(A{r}&\"|\"&TEXT(I{r},\"00\"),'Turn Log'!$S$5:$S$5000,0)),\"\"))",
+        "K": "=IF(A{r}=\"\",\"\",IFERROR(INDEX('Turn Log'!$R$5:$R$5000,MATCH(A{r}&\"|\"&TEXT(I{r},\"00\"),'Turn Log'!$S$5:$S$5000,0)),\"\"))",
         "L": "=IF(A{r}=\"\",\"\",COUNTIFS('Turn Log'!$B$5:$B$5000,A{r},'Turn Log'!$X$5:$X$5000,1))",
         "M": "=IF(A{r}=\"\",\"\",COUNTIFS('Turn Log'!$B$5:$B$5000,A{r},'Turn Log'!$Y$5:$Y$5000,1))",
         "N": "=IF(A{r}=\"\",\"\",COUNTIFS('Turn Log'!$B$5:$B$5000,A{r},'Turn Log'!$W$5:$W$5000,1))",
-        "O": "=IF(H{r}=\"\",\"No\",\"Yes\")",
-        "P": "=IF(A{r}=\"\",\"\",COUNTIFS('Stability Checks'!$A$5:$A$2000,A{r},'Stability Checks'!$C$5:$C$2000,\"Re-execution\",'Stability Checks'!$E$5:$E$2000,\"Pass\"))",
-        "Q": "=IF(A{r}=\"\",\"\",COUNTIFS('Stability Checks'!$A$5:$A$2000,A{r},'Stability Checks'!$C$5:$C$2000,\"Re-prompt\",'Stability Checks'!$E$5:$E$2000,\"Pass\"))",
+        "O": "=IF(A{r}=\"\",\"\",IF(H{r}=\"\",\"No\",\"Yes\"))",
+        "P": "=IF(A{r}=\"\",\"\",COUNTIFS('Stability Checks'!$A$5:$A$5000,A{r},'Stability Checks'!$C$5:$C$5000,\"Re-execution\",'Stability Checks'!$E$5:$E$5000,\"Pass\"))",
+        "Q": "=IF(A{r}=\"\",\"\",COUNTIFS('Stability Checks'!$A$5:$A$5000,A{r},'Stability Checks'!$C$5:$C$5000,\"Re-prompt\",'Stability Checks'!$E$5:$E$5000,\"Pass\"))",
         "R": "=IF(A{r}=\"\",\"\",'Run Plan'!Q{r})",
     }
+    for col_letter, template in formulas_by_col.items():
+        ws[f"{col_letter}{row}"] = template.format(r=row)
 
-    for row in range(5, target_last_row + 1):
-        if row > ws.max_row or ws.cell(row, 1).value in (None, ""):
+
+def _ensure_run_summary_rows(ws, run_plan_ws) -> None:
+    last_run_plan_row = _last_populated_row(run_plan_ws, 1)
+    template_row = 5
+    target_last_row = max(last_run_plan_row, template_row)
+
+    for row in range(template_row, target_last_row + 1):
+        if row > ws.max_row:
             _copy_row_style(ws, template_row, row, ws.max_column)
+        _set_run_summary_row_formulas(ws, row)
 
-        for col_letter, template in formulas_by_col.items():
-            ws[f"{col_letter}{row}"] = template.format(r=row)
+    for row in range(target_last_row + 1, ws.max_row + 1):
+        _clear_row_values(ws, row, 18)
+
+
+def _set_dashboard_formulas(ws) -> None:
+    ws["B4"] = '=COUNTIF(\'Run Plan\'!$A$5:$A$5000,"?*")'
+    ws["D4"] = '=COUNTIF(\'Run Summary\'!$O$5:$O$5000,"Yes")'
+    ws["F4"] = '=IFERROR(AVERAGEIF(\'Run Summary\'!$H$5:$H$5000,">0"),"")'
+    ws["B8"] = '=IFERROR(AVERAGEIF(\'Run Summary\'!$A$5:$A$5000,"?*",\'Run Summary\'!$M$5:$M$5000),"")'
+    ws["D8"] = '=COUNTIF(\'Run Summary\'!$A$5:$A$5000,"?*")'
+    ws["F8"] = '=COUNTIF(\'Stability Checks\'!$A$5:$A$5000,"?*")'
+
+
+def _oracle_info_for_task(spider2_root: Path, instance_id: str) -> tuple[str, str]:
+    gold_exec_dir = spider2_root / "spider2-lite" / "evaluation_suite" / "gold" / "exec_result"
+    gold_sql_dir = spider2_root / "spider2-lite" / "evaluation_suite" / "gold" / "sql"
+    matches = sorted(gold_exec_dir.glob(f"{instance_id}.*")) if gold_exec_dir.exists() else []
+    if matches:
+        return "exec_result", str(matches[0].relative_to(spider2_root))
+    sql_path = gold_sql_dir / f"{instance_id}.sql"
+    if sql_path.exists():
+        return "gold_sql", str(sql_path.relative_to(spider2_root))
+    return "", ""
+
+
+def populate_tasks_sheet_from_spider2(workbook_path: Path, spider2_root: Path, *, local_only: bool = True) -> None:
+    wb = openpyxl.load_workbook(workbook_path)
+    tasks_ws = wb["Tasks"]
+
+    for row in range(5, max(tasks_ws.max_row, 5) + 1):
+        _clear_row_values(tasks_ws, row, len(TASK_HEADERS))
+
+    tasks = load_tasks_from_root(spider2_root)
+    if local_only:
+        tasks = [task for task in tasks if task.instance_id.lower().startswith("local")]
+    tasks = sorted(tasks, key=lambda task: task.instance_id)
+
+    for offset, task in enumerate(tasks, start=5):
+        if offset > tasks_ws.max_row:
+            _copy_row_style(tasks_ws, 5, offset, len(TASK_HEADERS))
+        oracle_type, oracle_path = _oracle_info_for_task(spider2_root, task.instance_id)
+        row = {
+            "task_id": task.instance_id,
+            "dataset_split": "spider2-lite-local",
+            "db_name": task.db,
+            "db_path": f"spider2-lite/resource/databases/spider2-localdb/{task.db}.sqlite",
+            "question": task.question,
+            "schema_hash / version": "",
+            "oracle_result_file": oracle_path,
+            "difficulty_band": "",
+            "pilot?": "",
+            "main?": "",
+            "recording_segment": "",
+            "notes": task.external_knowledge if isinstance(task.external_knowledge, str) else oracle_type,
+        }
+        for col, header in enumerate(TASK_HEADERS, start=1):
+            tasks_ws.cell(offset, col).value = row.get(header, "")
+
+    _mark_for_recalc(wb)
+    wb.save(workbook_path)
+
+
+def repair_workbook_layout(
+    workbook_path: Path,
+    *,
+    drop_template_examples: bool = True,
+    clear_task_rows: bool = False,
+    clear_working_sheets: bool = False,
+    spider2_root: Path | None = None,
+    populate_tasks: bool = False,
+) -> None:
+    wb = openpyxl.load_workbook(workbook_path)
+    run_plan_ws = wb["Run Plan"]
+    turn_log_ws = wb["Turn Log"]
+    stability_ws = wb["Stability Checks"]
+    run_summary_ws = wb["Run Summary"]
+    dashboard_ws = wb["Dashboard"]
+    tasks_ws = wb["Tasks"]
+
+    if drop_template_examples:
+        _clear_rows_by_prefix(run_plan_ws, 1, ["PILOT-"], len(RUN_PLAN_HEADERS))
+        _clear_rows_by_prefix(turn_log_ws, 2, ["PILOT-"], len(TURN_LOG_HEADERS))
+        _clear_rows_by_prefix(stability_ws, 1, ["PILOT-"], len(STABILITY_HEADERS))
+
+    if clear_task_rows and not populate_tasks:
+        for row in range(5, max(tasks_ws.max_row, 5) + 1):
+            _clear_row_values(tasks_ws, row, len(TASK_HEADERS))
+
+    if clear_working_sheets:
+        for row in range(5, max(turn_log_ws.max_row, 5) + 1):
+            _clear_row_values(turn_log_ws, row, len(TURN_LOG_HEADERS))
+        for row in range(5, max(stability_ws.max_row, 5) + 1):
+            _clear_row_values(stability_ws, row, len(STABILITY_HEADERS))
+
+    _ensure_run_summary_rows(run_summary_ws, run_plan_ws)
+    _set_dashboard_formulas(dashboard_ws)
+
+    _mark_for_recalc(wb)
+    wb.save(workbook_path)
+
+    if populate_tasks:
+        if spider2_root is None:
+            raise ValueError("populate_tasks=True requires spider2_root to be provided.")
+        populate_tasks_sheet_from_spider2(workbook_path, spider2_root, local_only=True)
+        wb = openpyxl.load_workbook(workbook_path)
+        _set_dashboard_formulas(wb["Dashboard"])
+        _mark_for_recalc(wb)
+        wb.save(workbook_path)
 
 
 def sync_output_to_workbook(workbook_path: Path, out_dir: Path) -> None:
@@ -179,6 +345,7 @@ def sync_output_to_workbook(workbook_path: Path, out_dir: Path) -> None:
     turn_log_ws = wb["Turn Log"]
     stability_ws = wb["Stability Checks"]
     run_summary_ws = wb["Run Summary"]
+    dashboard_ws = wb["Dashboard"]
 
     logs_dir = out_dir / "logs"
     run_plan_rows = read_jsonl(logs_dir / "run_plan.jsonl")
@@ -194,7 +361,7 @@ def sync_output_to_workbook(workbook_path: Path, out_dir: Path) -> None:
             _formulaify_turn_log_row(turn_log_ws, r)
 
     _ensure_run_summary_rows(run_summary_ws, run_plan_ws)
+    _set_dashboard_formulas(dashboard_ws)
 
-    wb.calculation.fullCalcOnLoad = True
-    wb.calculation.forceFullCalc = True
+    _mark_for_recalc(wb)
     wb.save(workbook_path)

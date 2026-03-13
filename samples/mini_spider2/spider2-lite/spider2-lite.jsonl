@@ -1,1 +1,1 @@
-{"instance_id": "local001", "db": "sqlite-demo", "question": "Which customer placed the most orders? Provide the customer full name.", "external_knowledge": ""}
+{"instance_id": "local001", "db": "sqlite-demo", "question": "Which customer placed the most orders? Provide the customer full name.", "external_knowledge": "sqlite_demo_note.md"}

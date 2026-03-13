@@ -1,0 +1,169 @@
+pack_id: sqlite-zero-budget-pack-v1
+description: Curated Spider2-Lite SQLite task pack for free-manual comparative testing.
+selection_principles:
+- Use only SQLite-backed Spider2-Lite tasks so execution is fully local and reproducible.
+- Reserve pilot tasks for workflow debugging rather than headline reporting.
+- Use the same main task set for every model to keep trajectories comparable.
+- Keep a small holdout pack for robustness checks after the main comparison is stable.
+groups:
+  pilot:
+  - local002
+  - local003
+  - local004
+  - local007
+  main:
+  - local008
+  - local009
+  - local010
+  - local015
+  - local017
+  - local018
+  - local019
+  - local020
+  holdout:
+  - local021
+  - local022
+  - local023
+  - local024
+  reserve:
+  - local025
+  - local026
+  - local028
+  - local031
+task_metadata:
+  local002:
+    db_name: E_commerce
+    question: Can you calculate the 5-day symmetric moving average of predicted toy
+      sales for December 5 to 8, 2018, using daily sales data from January 1, 2017,
+      to August 29, 2018, with a simple linear regression model? Finally provide the
+      sum of those four 5-day moving averages?
+    external_knowledge: null
+  local003:
+    db_name: E_commerce
+    question: According to the RFM definition document, calculate the average sales
+      per order for each customer within distinct RFM segments, considering only delivered
+      orders. Use the customer unique identifier. Clearly define how to calculate
+      Recency based on the latest purchase timestamp and specify the criteria for
+      classifying RFM segments. The average sales should be computed as the total
+      spend divided by the total number of orders. Please analyze and report the differences
+      in average sales across the RFM segments.
+    external_knowledge: RFM.md
+  local004:
+    db_name: E_commerce
+    question: Could you tell me the number of orders, average payment per order and
+      customer lifespan in weeks of the 3 custumers with the highest average payment
+      per order, where the lifespan is calculated by subtracting the earliest purchase
+      date from the latest purchase date in days, dividing by seven, and if the result
+      is less than seven days, setting it to 1.0?
+    external_knowledge: null
+  local007:
+    db_name: Baseball
+    question: Could you help me calculate the average single career span value in
+      years for all baseball players? Please precise the result as a float number.
+      First, calculate the difference in years, months, and days between the debut
+      and final game dates. For each player, the career span is computed as the sum
+      of the absolute number of years, plus the absolute number of months divided
+      by 12, plus the absolute number of days divided by 365. Round each part to two
+      decimal places before summing. Finally, average the career spans and round the
+      result to a float number.
+    external_knowledge: null
+  local008:
+    db_name: Baseball
+    question: I would like to know the given names of baseball players who have achieved
+      the highest value of games played, runs, hits, and home runs, with their corresponding
+      score values.
+    external_knowledge: null
+  local009:
+    db_name: Airlines
+    question: What is the distance of the longest route where Abakan is either the
+      departure or destination city (in kilometers)?
+    external_knowledge: haversine_formula.md
+  local010:
+    db_name: Airlines
+    question: Distribute all the unique city pairs into the distance ranges 0, 1000,
+      2000, 3000, 4000, 5000, and 6000+, based on their average distance of all routes
+      between them. Then how many pairs are there in the distance range with the fewest
+      unique city paires?
+    external_knowledge: haversine_formula.md
+  local015:
+    db_name: California_Traffic_Collision
+    question: 'Please calculate the fatality rate for motorcycle collisions, separated
+      by helmet usage. Specifically, calculate two percentages: 1) the percentage
+      of motorcyclist fatalities in collisions where parties (drivers or passengers)
+      were wearing helmets, and 2) the percentage of motorcyclist fatalities in collisions
+      where parties were not wearing helmets. For each group, compute this by dividing
+      the total number of motorcyclist fatalities by the total number of collisions
+      involving that group. Use the parties table to determine helmet usage (from
+      party_safety_equipment fields).'
+    external_knowledge: null
+  local017:
+    db_name: California_Traffic_Collision
+    question: In which year were the two most common causes of traffic accidents different
+      from those in other years?
+    external_knowledge: null
+  local018:
+    db_name: California_Traffic_Collision
+    question: For the primary collision factor violation category that was the most
+      common cause of traffic accidents in 2021, how many percentage points did its
+      share of annual road incidents in 2021 decrease compared to its share in 2011?
+    external_knowledge: null
+  local019:
+    db_name: WWE
+    question: For the NXT title that had the shortest match (excluding titles with
+      'title change'), what were the names of the two wrestlers involved?
+    external_knowledge: null
+  local020:
+    db_name: IPL
+    question: Which bowler has the lowest bowling average per wicket taken?
+    external_knowledge: null
+  local021:
+    db_name: IPL
+    question: Could you calculate the average of the total runs scored by all strikers
+      who have scored more than 50 runs in any single match?
+    external_knowledge: null
+  local022:
+    db_name: IPL
+    question: Retrieve the names of players who scored no less than 100 runs in a
+      match while playing for the team that lost that match.
+    external_knowledge: null
+  local023:
+    db_name: IPL
+    question: Please help me find the names of top 5 players with the highest average
+      runs per match in season 5, along with their batting averages.
+    external_knowledge: null
+  local024:
+    db_name: IPL
+    question: Can you help me find the top 5 countries whose players have the highest
+      average of their individual average runs per match across all seasons? Specifically,
+      for each player, calculate their average runs per match over all matches they
+      played, then compute the average of these player averages for each country,
+      and include these country batting averages in the result.
+    external_knowledge: null
+  local025:
+    db_name: IPL
+    question: For each match, considering every innings, please combine runs from
+      both batsman scored and extra runs for each over, then identify the single over
+      with the highest total runs, retrieve the bowler for that over from the ball
+      by ball table, and calculate the average of these highest over totals across
+      all matches, ensuring that all runs and bowler details are accurately reflected.
+    external_knowledge: null
+  local026:
+    db_name: IPL
+    question: Please help me identify the top 3 bowlers who, in the overs where the
+      maximum runs were conceded in each match, gave up the highest number of runs
+      in a single over across all matches. For each of these bowlers, provide the
+      match in which they conceded these maximum runs. Only consider overs that had
+      the most runs conceded within their respective matches, and among these, determine
+      which bowlers conceded the most runs in a single over overall.
+    external_knowledge: null
+  local028:
+    db_name: Brazilian_E_Commerce
+    question: Could you generate a report that shows the number of delivered orders
+      for each month in the years 2016, 2017, and 2018? Each column represents a year,
+      and each row represents a month.
+    external_knowledge: null
+  local031:
+    db_name: Brazilian_E_Commerce
+    question: What is the highest monthly delivered orders volume in the year with
+      the lowest annual delivered orders volume among 2016, 2017, and 2018?
+    external_knowledge: null

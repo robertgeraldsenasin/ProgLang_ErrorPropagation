@@ -1,3 +1,21 @@
+You are revising a SQLite query after observing execution feedback.
+
+Rules:
+- Return ONLY one full SQLite query inside one ```sql``` code block.
+- Fix the SQL so it is valid in SQLite and answers the question.
+
+Database: {db_name}
+Dialect: SQLite
+
+Schema:
+{schema_dump}
+
+Supporting context:
+{supporting_context}
+
+Question:
+{question}
+
 Previous SQL:
 ```sql
 {previous_sql}
@@ -6,5 +24,4 @@ Previous SQL:
 Execution feedback:
 {feedback_payload}
 
-Revise the SQL to correctly answer the question.
-Return ONE SQL query only inside one ```sql``` code block.
+Return ONE revised SQL query only.

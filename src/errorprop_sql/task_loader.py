@@ -5,13 +5,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+
 @dataclass
 class Task:
     instance_id: str
     db: str
     question: str
-    external_knowledge: str | list[str] | None
+    external_knowledge: Any
     raw: dict[str, Any]
+
 
 def _candidate_task_files(spider2_root: Path) -> list[Path]:
     return [
@@ -20,6 +22,14 @@ def _candidate_task_files(spider2_root: Path) -> list[Path]:
         spider2_root / "spider2-lite.jsonl",
         spider2_root / "spider2-lite.json",
     ]
+
+
+def find_task_file(spider2_root: Path) -> Path:
+    for candidate in _candidate_task_files(spider2_root):
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError("Could not find spider2-lite task file under the supplied Spider2 root.")
+
 
 def _load_any_json_records(path: Path) -> list[dict[str, Any]]:
     if path.suffix == ".jsonl":
@@ -35,15 +45,9 @@ def _load_any_json_records(path: Path) -> list[dict[str, Any]]:
         return data
     raise ValueError(f"Unsupported task file structure: {path}")
 
-def load_tasks_from_root(spider2_root: Path) -> list[Task]:
-    task_file = None
-    for candidate in _candidate_task_files(spider2_root):
-        if candidate.exists():
-            task_file = candidate
-            break
-    if task_file is None:
-        raise FileNotFoundError("Could not find spider2-lite task file under the supplied Spider2 root.")
 
+def load_tasks_from_root(spider2_root: Path) -> list[Task]:
+    task_file = find_task_file(spider2_root)
     records = _load_any_json_records(task_file)
     tasks: list[Task] = []
     for row in records:
@@ -58,11 +62,13 @@ def load_tasks_from_root(spider2_root: Path) -> list[Task]:
         )
     return tasks
 
+
 def get_task_by_id(spider2_root: Path, instance_id: str) -> Task:
     for task in load_tasks_from_root(spider2_root):
         if task.instance_id == instance_id:
             return task
     raise KeyError(f"Task not found: {instance_id}")
+
 
 def resolve_sqlite_db_path(spider2_root: Path, db_name: str, explicit_path: str | None = None) -> Path:
     candidates: list[Path] = []
@@ -90,6 +96,7 @@ def resolve_sqlite_db_path(spider2_root: Path, db_name: str, explicit_path: str 
             if found:
                 return found[0]
     raise FileNotFoundError(f"Could not resolve SQLite database file for db={db_name}")
+
 
 def validate_spider2_layout(spider2_root: Path) -> dict[str, Any]:
     lite_dir = spider2_root / "spider2-lite"

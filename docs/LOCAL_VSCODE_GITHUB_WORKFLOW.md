@@ -42,12 +42,14 @@ python -m pytest -q
 ```
 
 ## 5) Run one local dry run with the included sample fixture
+Use the direct runner for the smoke test:
+
 ```bash
 python scripts/03_run_trajectory_manual.py \
-  --model-label "gpt-5.1" \
+  --model-label "sample-gpt" \
   --instance-id local001 \
   --condition F1 \
-  --t-max 5 \
+  --t-max 4 \
   --spider2-root ./samples/mini_spider2 \
   --out-dir ./output
 ```
@@ -57,13 +59,15 @@ When the terminal asks for the model reply, paste the model output and end with 
 FILE:/absolute/or/relative/path/to/reply.txt
 ```
 
-## 6) Sync the workbook
-Keep the Excel file closed while syncing.
-
+## 6) For real runs, prefer the workbook-driven workflow
+1. Reset the workbook if needed:
 ```bash
-python scripts/04_sync_logs_to_workbook.py \
-  --workbook ./workbook/Experiment_ProgLang_Error_Propagation_repo.xlsx \
-  --out-dir ./output
+python scripts/11_reset_workbook_for_manual_entry.py --workbook ./workbook/Experiment_ProgLang_Error_Propagation_repo.xlsx
+```
+2. Fill one `Run Plan` row.
+3. Execute that row:
+```bash
+python scripts/12_run_from_workbook.py --workbook ./workbook/Experiment_ProgLang_Error_Propagation_repo.xlsx --row 5 --spider2-root ./Spider2 --out-dir ./output
 ```
 
 ## 7) Run stability checks after a passing run
@@ -88,15 +92,9 @@ Validate first:
 python scripts/02_validate_spider2_layout.py --spider2-root ./Spider2
 ```
 
-Run a real task:
+Run a real task from the workbook:
 ```bash
-python scripts/03_run_trajectory_manual.py \
-  --model-label "gemini-2.5-pro" \
-  --instance-id local056 \
-  --condition F2 \
-  --t-max 5 \
-  --spider2-root ./Spider2 \
-  --out-dir ./output
+python scripts/12_run_from_workbook.py --workbook ./workbook/Experiment_ProgLang_Error_Propagation_repo.xlsx --row 5 --spider2-root ./Spider2 --out-dir ./output --run-stability-on-pass
 ```
 
 ## 10) Commit and push to GitHub

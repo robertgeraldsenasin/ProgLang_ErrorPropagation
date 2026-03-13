@@ -1,0 +1,42 @@
+suite_id: free-browser-manual-2026Q1
+description: Free-access models suitable for zero-budget manual browser or AI Studio
+  testing in iterative Text-to-SQL refinement.
+models:
+- model_id: chatgpt-free-gpt-5.3
+  provider: OpenAI
+  visible_label: GPT-5.3
+  access_mode: ChatGPT Free (web)
+  fallback_label: mini version after the GPT-5.3 free limit is reached
+  recommended_use: Pilot plus main comparison runs with strict visible-label logging.
+  notes: Log the exact visible label because ChatGPT Free falls back after the GPT-5.3
+    message cap.
+- model_id: gemini-2.5-pro-aistudio-free
+  provider: Google
+  visible_label: Gemini 2.5 Pro
+  access_mode: Google AI Studio (web, free usage)
+  fallback_label: Gemini 2.5 Flash-Lite if rate-limited or if the UI changes
+  recommended_use: Primary Google comparison model for SQL reasoning.
+  notes: Use AI Studio and record the exact visible model label; if you switch to
+    Flash-Lite, log it as a separate model row.
+- model_id: deepseek-v3.2-web
+  provider: DeepSeek
+  visible_label: DeepSeek-V3.2
+  access_mode: DeepSeek web/app (free)
+  fallback_label: ''
+  recommended_use: Primary DeepSeek comparison model.
+  notes: Do not remap the web/app label to an API label without separate verification.
+- model_id: claude-sonnet-4.6-free
+  provider: Anthropic
+  visible_label: Claude Sonnet 4.6
+  access_mode: Claude.ai Free
+  fallback_label: ''
+  recommended_use: Primary Anthropic comparison model.
+  notes: Claude Sonnet 4.6 is the current default on Free plans; record the visible
+    label and date.
+logging_rules:
+- Always copy the exact visible model label from the UI into Run Plan.model_snapshot.
+- If the provider silently switches or falls back to another model, create a new Run
+  Plan row for that visible label instead of overwriting the old one.
+- Use deterministic or low-creativity settings when the UI allows it; otherwise note
+  that browser decoding is provider-managed.
+- Keep one browser tab per run to avoid accidental context carryover.

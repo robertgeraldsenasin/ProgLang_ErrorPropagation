@@ -1,32 +1,33 @@
-primary:
+primary_free_browser:
   openai:
     provider: OpenAI
-    model_id: gpt-5.1
-    use_case: Main benchmark model for GPT-family runs.
+    model_id: chatgpt-free-gpt-5.3
+    visible_label: GPT-5.3
+    use_case: Free-tier OpenAI comparison run; log fallback mini labels separately if they appear.
   google:
     provider: Google
-    model_id: gemini-2.5-pro
-    use_case: Main benchmark model for Gemini runs.
+    model_id: gemini-2.5-pro-aistudio-free
+    visible_label: Gemini 2.5 Pro
+    use_case: Primary Google comparison run in AI Studio.
   deepseek:
     provider: DeepSeek
-    model_id: deepseek-reasoner
-    use_case: Main benchmark model for DeepSeek reasoning runs.
+    model_id: deepseek-v3.2-web
+    visible_label: DeepSeek-V3.2
+    use_case: Primary DeepSeek comparison run on web/app.
+  anthropic:
+    provider: Anthropic
+    model_id: claude-sonnet-4.6-free
+    visible_label: Claude Sonnet 4.6
+    use_case: Primary Anthropic comparison run on Claude Free.
 
-budget:
+fallback_or_backup:
   openai:
     provider: OpenAI
-    model_id: gpt-5-mini
-    use_case: Budget / ablation / higher-volume replication.
+    model_id: chatgpt-mini-fallback
+    visible_label: mini fallback
+    use_case: Use only if ChatGPT Free switches away from GPT-5.3 mid-session; treat as a separate model label in the workbook.
   google:
     provider: Google
     model_id: gemini-2.5-flash-lite
-    use_case: Budget / ablation / faster reruns.
-  deepseek:
-    provider: DeepSeek
-    model_id: deepseek-chat
-    use_case: Budget / non-thinking DeepSeek baseline.
-
-manual_web_logging_rules:
-  - Log the exact UI label shown at test time.
-  - Do not rename a web/app label to an API snapshot unless you verified it.
-  - Record the visible provider, model label, and test date in the workbook.
+    visible_label: Gemini 2.5 Flash-Lite
+    use_case: Use if Gemini 2.5 Pro is unavailable or rate-limited.

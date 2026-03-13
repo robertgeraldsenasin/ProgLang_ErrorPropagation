@@ -8,14 +8,17 @@ from typing import Any
 from .executor import execute_sqlite
 from .feedback import build_feedback_payload
 from .oracle import compare_with_oracle, load_oracle_result
+from .prompt_context import render_supporting_context
 from .schema_utils import dump_sqlite_schema
 from .sql_extract import extract_sql
 from .states import classify_state
 from .task_loader import get_task_by_id, resolve_sqlite_db_path
 from .utils import append_jsonl, ensure_dir, safe_model_slug, sha1_text
 
+
 def _load_template(prompt_dir: Path, name: str) -> str:
     return (prompt_dir / name).read_text(encoding="utf-8")
+
 
 def _manual_collect_response() -> str:
     print("\nPaste the model response below.")
@@ -36,12 +39,15 @@ def _manual_collect_response() -> str:
         lines.append(line)
     return "\n".join(lines)
 
+
 def _make_run_id(instance_id: str, model_label: str, condition: str, replicate: int) -> str:
     return f"{instance_id.upper()}-{safe_model_slug(model_label).upper()}-{condition}-R{replicate}"
+
 
 def _write_text(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
+
 
 def run_manual_trajectory(
     *,
@@ -58,20 +64,23 @@ def run_manual_trajectory(
     batch_id: str,
     operator: str,
     timeout_sec: float,
+    model_snapshot: str | None = None,
+    planned_date: str | None = None,
+    record_file: str = "",
+    commit_hash: str = "",
+    notes: str = "",
 ) -> dict[str, Any]:
-    prompt_dir = prompt_dir
-    out_dir = out_dir
     for sub in ["prompts", "responses", "sql", "feedback", "logs", "runs"]:
         ensure_dir(out_dir / sub)
 
     task = get_task_by_id(spider2_root, instance_id)
     db_path = resolve_sqlite_db_path(spider2_root, task.db)
     schema_dump = dump_sqlite_schema(db_path, sample_rows_per_table=0)
+    supporting_context = render_supporting_context(spider2_root, task)
     oracle = load_oracle_result(spider2_root, task.instance_id, db_path)
 
     run_id = _make_run_id(instance_id, model_label, condition, replicate)
     run_dir = ensure_dir(out_dir / "runs" / run_id)
-
     now_iso = datetime.now().isoformat(timespec="seconds")
 
     run_plan_row = {
@@ -80,41 +89,39 @@ def run_manual_trajectory(
         "task_id": task.instance_id,
         "db_name": task.db,
         "model_id": model_label,
-        "model_snapshot": model_label,
+        "model_snapshot": model_snapshot or model_label,
         "protocol_id": condition,
         "temperature": temperature,
         "reasoning_mode": reasoning_mode,
         "T_max": t_max,
         "replicate": replicate,
         "operator": operator,
-        "planned_date": now_iso[:10],
-        "record_file": "",
+        "planned_date": planned_date or now_iso[:10],
+        "record_file": record_file,
         "artifact_folder": str(run_dir.relative_to(out_dir)),
-        "commit_hash": "",
+        "commit_hash": commit_hash,
         "status": "In progress",
-        "notes": "",
+        "notes": notes,
     }
     append_jsonl(out_dir / "logs" / "run_plan.jsonl", run_plan_row)
 
-    previous_sql = None
+    previous_sql: str | None = None
+    feedback_payload = "No feedback yet."
     final_state = None
     turns_logged = 0
     pass_turn = None
 
     for turn_no in range(1, t_max + 1):
-        if turn_no == 1:
-            template = _load_template(prompt_dir, "turn1_sql.txt")
-            prompt_text = template.format(
-                db_name=task.db,
-                schema_dump=schema_dump,
-                question=task.question,
-            )
-        else:
-            template = _load_template(prompt_dir, f"revise_{condition}.txt")
-            prompt_text = template.format(
-                previous_sql=previous_sql,
-                feedback_payload=feedback_payload,
-            )
+        template_name = "turn1_sql.txt" if turn_no == 1 else f"revise_{condition}.txt"
+        template = _load_template(prompt_dir, template_name)
+        prompt_text = template.format(
+            db_name=task.db,
+            schema_dump=schema_dump,
+            question=task.question,
+            supporting_context=supporting_context,
+            previous_sql=previous_sql or "",
+            feedback_payload=feedback_payload,
+        )
 
         prompt_file = out_dir / "prompts" / f"{run_id}_turn{turn_no:02d}.txt"
         _write_text(prompt_file, prompt_text)
@@ -139,7 +146,11 @@ def run_manual_trajectory(
             rows_pred = None
             rows_gold = len(oracle.rows)
             symdiff_rows = None
-            feedback_payload = "The previous response did not contain a valid SQL query. Return one SQLite SQL query only."
+            feedback_payload = (
+                "Execution feedback:\n"
+                "The previous response did not contain an extractable SQL query. "
+                "Return exactly one SQLite query inside one fenced sql block."
+            )
         else:
             exec_result = execute_sqlite(db_path, extracted_sql, timeout_sec=timeout_sec)
             comparison = compare_with_oracle(extracted_sql, exec_result, oracle) if exec_result.ok else None
@@ -181,7 +192,8 @@ def run_manual_trajectory(
         append_jsonl(out_dir / "logs" / "turn_log.jsonl", turn_row)
 
         turns_logged += 1
-        previous_sql = extracted_sql or previous_sql
+        if extracted_sql:
+            previous_sql = extracted_sql
         final_state = state
 
         print(f"Turn {turn_no} state: {state}")
@@ -189,14 +201,16 @@ def run_manual_trajectory(
             pass_turn = turn_no
             break
 
-    # Mark completion state in a second run_plan entry for traceability
     run_plan_done = dict(run_plan_row)
     run_plan_done["status"] = "Complete"
-    run_plan_done["notes"] = f"final_state={final_state}; pass_turn={pass_turn}"
+    final_note = f"final_state={final_state}; pass_turn={pass_turn}"
+    run_plan_done["notes"] = f"{notes} | {final_note}".strip(" |")
     append_jsonl(out_dir / "logs" / "run_plan.jsonl", run_plan_done)
 
     summary = {
         "run_id": run_id,
+        "task_id": task.instance_id,
+        "db_name": task.db,
         "final_state": final_state,
         "logged_turns": turns_logged,
         "pass_turn": pass_turn,
@@ -204,6 +218,7 @@ def run_manual_trajectory(
     }
     _write_text(run_dir / "summary.json", json.dumps(summary, indent=2))
     return summary
+
 
 def run_reexecution_stability_checks(
     *,
@@ -214,7 +229,6 @@ def run_reexecution_stability_checks(
     timeout_sec: float,
 ) -> list[dict[str, Any]]:
     import pandas as pd
-    from .task_loader import get_task_by_id
 
     logs_path = out_dir / "logs" / "turn_log.jsonl"
     if not logs_path.exists():

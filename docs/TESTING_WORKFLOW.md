@@ -62,3 +62,8 @@ Save:
 - recording timestamp or screen recording filename.
 
 That is what makes the trajectories auditable later.
+
+
+## Workbook-driven execution
+
+The recommended workflow is to enter a minimal row in `Run Plan` and execute it with `scripts/12_run_from_workbook.py`. This script computes `run_id` if blank, captures the current Git commit if available, runs the manual prompt-response loop, and syncs workbook fields automatically.

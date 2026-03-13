@@ -4,6 +4,10 @@ __pycache__/
 .venv/
 .idea/
 .vscode/
+
+Spider2/
+Spider2/spider2-lite/resource/local_sqlite.zip
+
 output/prompts/
 output/responses/
 output/sql/
@@ -11,6 +15,7 @@ output/feedback/
 output/screens/
 output/analysis/
 output/logs/
+output/runs/
+
 *.sqlite-wal
 *.sqlite-shm
-Spider2/spider2-lite/resource/local_sqlite.zip

@@ -162,6 +162,7 @@ def test_workbook_sync_appends_and_updates_rows(tmp_path: Path) -> None:
     turn_log_ws = wb["Turn Log"]
     stability_ws = wb["Stability Checks"]
     run_summary_ws = wb["Run Summary"]
+    dashboard_ws = wb["Dashboard"]
 
     smoke_run_plan_rows = [r for r in range(5, run_plan_ws.max_row + 1) if run_plan_ws[f"A{r}"].value == run_id]
     assert len(smoke_run_plan_rows) == 1
@@ -179,5 +180,57 @@ def test_workbook_sync_appends_and_updates_rows(tmp_path: Path) -> None:
     smoke_stability_rows = [r for r in range(5, stability_ws.max_row + 1) if stability_ws[f"A{r}"].value == run_id]
     assert len(smoke_stability_rows) == 2
 
-    assert "COUNTIF('Turn Log'!$B$5:$B$5000" in str(run_summary_ws[f"G{run_row}"].value)
-    assert "COUNTIFS('Stability Checks'!$A$5:$A$2000" in str(run_summary_ws[f"P{run_row}"].value)
+    assert "MATCH(A" in str(run_summary_ws[f"J{run_row}"].value)
+    assert run_summary_ws[f"A{run_row + 1}"].value is None
+    assert 'COUNTIF(\'Run Summary\'!$A$5:$A$5000,"?*")' in str(dashboard_ws["D8"].value)
+    assert 'COUNTIF(\'Run Plan\'!$A$5:$A$5000,"?*")' in str(dashboard_ws["B4"].value)
+
+
+def test_workbook_sync_preserves_manual_run_plan_fields_when_log_row_is_blank(tmp_path: Path) -> None:
+    workbook_path = tmp_path / "sync_blank_preserve.xlsx"
+    shutil.copy2(WORKBOOK_TEMPLATE, workbook_path)
+
+    wb = load_workbook(workbook_path)
+    ws = wb["Run Plan"]
+    ws["A5"] = "R-BLANK"
+    ws["L5"] = "analyst"
+    ws["N5"] = "recordings/run1.mp4"
+    ws["P5"] = "abc123"
+    ws["Q5"] = "Planned"
+    wb.save(workbook_path)
+
+    out_dir = tmp_path / "output"
+    logs_dir = out_dir / "logs"
+    _write_jsonl(
+        logs_dir / "run_plan.jsonl",
+        [
+            {
+                "run_id": "R-BLANK",
+                "batch_id": "B1",
+                "task_id": "local002",
+                "db_name": "E_commerce",
+                "model_id": "gpt53-free",
+                "model_snapshot": "",
+                "protocol_id": "F2",
+                "temperature": 0,
+                "reasoning_mode": "",
+                "T_max": 4,
+                "replicate": 1,
+                "operator": "",
+                "planned_date": "",
+                "record_file": "",
+                "artifact_folder": "runs/R-BLANK",
+                "commit_hash": "",
+                "status": "Complete",
+                "notes": "",
+            }
+        ],
+    )
+
+    sync_output_to_workbook(workbook_path, out_dir)
+    wb2 = load_workbook(workbook_path, data_only=False)
+    ws2 = wb2["Run Plan"]
+    assert ws2["L5"].value == "analyst"
+    assert ws2["N5"].value == "recordings/run1.mp4"
+    assert ws2["P5"].value == "abc123"
+    assert ws2["Q5"].value == "Complete"

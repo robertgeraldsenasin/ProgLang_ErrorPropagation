@@ -1,12 +1,12 @@
 # Error Propagation in Iterative GenAI Text-to-SQL Refinement
 
-A runnable research repo for **manual or low-cost iterative Text-to-SQL testing** on the **Spider2-Lite SQLite subset** with:
+A runnable research repo for **manual, zero-budget or low-budget iterative Text-to-SQL testing** on the **Spider2-Lite SQLite subset** with:
 
-- a **manual trajectory runner** for ChatGPT / Gemini / DeepSeek web or API-assisted workflows,
-- a **workbook sync pipeline** so every run is documented cleanly,
-- **analysis scripts** for propagation, regressions, and stability,
+- a **manual trajectory runner** for ChatGPT, Gemini, DeepSeek, and Claude browser workflows,
+- a **workbook sync and seeding pipeline** so every run is documented cleanly,
+- **analysis scripts** for propagation, regressions, stability, and model-level summaries,
 - a **sample fixture** so the repo can be smoke-tested without downloading Spider2 first,
-- the current project PDFs / continuity pack / workbook bundled for continuity.
+- the current project PDFs, continuity pack, and workbook bundled for continuity.
 
 ## What this repo is for
 
@@ -26,26 +26,32 @@ Each executed turn is labeled as one of:
 - `WrongResult`
 - `Pass`
 
-## Recommended model lineup
+## Recommended zero-budget model lineup
 
-For the **main paper run**, use stable, reproducible API identifiers where possible:
+For the **main free-model comparison**, use the visible web labels:
 
-- **OpenAI:** `gpt-5.1`
-- **Google:** `gemini-2.5-pro`
-- **DeepSeek:** `deepseek-reasoner`
-
-For **budget-sensitive replication / ablations**:
-
-- **OpenAI:** `gpt-5-mini`
-- **Google:** `gemini-2.5-flash-lite`
-- **DeepSeek:** `deepseek-chat`
-
-For **manual browser testing**, log the **exact UI label shown** at test time and store it in the workbook. Do not silently map web/app labels to API snapshot IDs.
+- **OpenAI:** `GPT-5.3` on ChatGPT Free
+- **Google:** `Gemini 2.5 Pro` in Google AI Studio
+- **DeepSeek:** `DeepSeek-V3.2` on web/app
+- **Anthropic:** `Claude Sonnet 4.6` on Claude Free
 
 See:
+- `configs/free_model_suite.yaml`
+- `configs/task_pack_zero_budget.yaml`
+- `configs/study_protocol_zero_budget.yaml`
+- `docs/reports/comparison_report.md`
+- `docs/reports/functionality_reference.md`
+- `docs/reports/workbook_guide.md`
 
-- `docs/MODEL_SELECTION.md`
-- `configs/model_presets.yaml`
+## Recommended study structure
+
+- **Pilot pack:** 4 SQLite tasks × 4 models = 16 trajectories
+- **Main pack:** 8 SQLite tasks × 4 models = 32 trajectories
+- **Optional holdout pack:** 4 SQLite tasks × 4 models = 16 trajectories
+- **Main turn cap:** `T_max = 4`
+- **Stability checks:** 3 re-execution checks per passing run
+
+The seeded workbook and configs in this repo are aligned to that plan.
 
 ## Repo layout
 
@@ -77,35 +83,41 @@ python -m pip install -r requirements.txt
 pytest
 ```
 
-### Option B — use the real Spider2-Lite SQLite subset
+### Option B — set up the real Spider2-Lite SQLite workflow
 
-1. Clone the official Spider2 repo.
-2. Put the local SQLite bundle under:
+1. Clone the official Spider2 repo into `./Spider2`.
+2. Download the local SQLite bundle into:
    `Spider2/spider2-lite/resource/databases/spider2-localdb/`
 3. Validate your layout:
    ```bash
-   python scripts/02_validate_spider2_layout.py --spider2-root ./Spider2
+   python scripts/02_validate_spider2_layout.py --spider2-root ./Spider2 --show-local
    ```
-4. Run a manual trajectory:
+4. Reset the workbook to a clean manual-entry state if needed:
    ```bash
-   python scripts/03_run_trajectory_manual.py \
-     --model-label "gpt-5.1" \
-     --instance-id local056 \
-     --condition F1 \
-     --t-max 5 \
-     --spider2-root ./Spider2 \
-     --out-dir ./output
+   python scripts/11_reset_workbook_for_manual_entry.py --workbook ./workbook/Experiment_ProgLang_Error_Propagation_repo.xlsx
    ```
-5. Sync logs into the workbook:
+5. Fill one `Run Plan` row with `task_id`, `model_id`, `protocol_id`, `T_max`, and `replicate`.
+6. Run directly from the workbook row:
    ```bash
-   python scripts/04_sync_logs_to_workbook.py \
-     --workbook ./workbook/Experiment_ProgLang_Error_Propagation_repo.xlsx \
-     --out-dir ./output
+   python scripts/12_run_from_workbook.py --workbook ./workbook/Experiment_ProgLang_Error_Propagation_repo.xlsx --row 5 --spider2-root ./Spider2 --out-dir ./output
    ```
-6. Generate analysis tables:
+7. Generate analysis tables:
    ```bash
    python scripts/05_generate_analysis_tables.py --out-dir ./output
    ```
+
+If you still prefer the direct CLI runner, you can use:
+
+```bash
+python scripts/03_run_trajectory_manual.py \
+  --model-label "gpt53-free" \
+  --model-snapshot "GPT-5.3" \
+  --instance-id local008 \
+  --condition F2 \
+  --t-max 4 \
+  --spider2-root ./Spider2 \
+  --out-dir ./output
+```
 
 ## Manual runner workflow
 
@@ -141,7 +153,7 @@ The workbook lives at:
 
 - `workbook/Experiment_ProgLang_Error_Propagation_repo.xlsx`
 
-It includes:
+The main sheets are:
 
 - `START HERE`
 - `Data Entry Guide`
@@ -157,15 +169,27 @@ It includes:
 - `Example Run`
 - `Dashboard`
 
-The sync script fills `Run Plan`, `Turn Log`, and `Stability Checks` from machine logs.  
-You still use the workbook to:
+Use these scripts around the workbook:
 
-- plan batches,
-- record operator / recording notes,
-- review failed runs,
-- maintain the dashboard as the live experiment notebook.
+- `scripts/09_repair_workbook.py` repairs formulas and refreshes `Tasks`
+- `scripts/10_seed_workbook_reference_data.py` is optional if you want a preplanned study pack
+- `scripts/11_reset_workbook_for_manual_entry.py` resets the workbook to blank run sheets
+- `scripts/12_run_from_workbook.py` reads one Run Plan row, runs the trajectory, and syncs the workbook automatically
+- `scripts/04_sync_logs_to_workbook.py` syncs logs into `Run Plan`, `Turn Log`, and `Stability Checks`
+- `scripts/05_generate_analysis_tables.py` exports the CSV and PNG analysis outputs
 
-## Included project continuity assets
+
+## Final report set
+
+The polished documentation bundle is included in:
+
+- `docs/reports/comparison_report.pdf`
+- `docs/reports/functionality_reference.pdf`
+- `docs/reports/workbook_guide.pdf`
+
+Markdown source for those reports is also included beside each PDF.
+
+## Included continuity assets
 
 This repo also bundles the current project material so you can keep writing and testing from one place:
 
@@ -178,9 +202,6 @@ This repo also bundles the current project material so you can keep writing and 
 ## Notes
 
 - This repo is intentionally centered on the **SQLite / local** part of Spider2-Lite because it is the cleanest path for a local undergraduate workflow.
-- The scripts do **not** bundle the full official Spider2 dataset. You still need to clone/download it separately.
+- The scripts do **not** bundle the full official Spider2 dataset. You still need to clone and download it separately.
 - The included sample fixture is only for smoke tests and CI.
-
-## Suggested GitHub repo name
-
-`error-propagation-text2sql-refinement`
+- Log the **exact visible model label** shown by the UI. Do not silently remap browser labels to API identifiers.

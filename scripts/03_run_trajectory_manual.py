@@ -26,6 +26,11 @@ def main() -> None:
     parser.add_argument("--replicate", type=int, default=1)
     parser.add_argument("--batch-id", default="MAIN")
     parser.add_argument("--operator", default="")
+    parser.add_argument("--model-snapshot", default="")
+    parser.add_argument("--planned-date", default="")
+    parser.add_argument("--record-file", default="")
+    parser.add_argument("--commit-hash", default="")
+    parser.add_argument("--notes", default="")
     parser.add_argument("--prompt-dir", default="prompts")
     parser.add_argument("--timeout-sec", type=float, default=5.0)
     args = parser.parse_args()
@@ -44,6 +49,11 @@ def main() -> None:
         batch_id=args.batch_id,
         operator=args.operator,
         timeout_sec=args.timeout_sec,
+        model_snapshot=args.model_snapshot or None,
+        planned_date=args.planned_date or None,
+        record_file=args.record_file,
+        commit_hash=args.commit_hash,
+        notes=args.notes,
     )
 
     print("\nRun finished.")

@@ -1,0 +1,19 @@
+study_id: free-model-sql-propagation-v1
+pilot_protocol: F1
+main_protocol: F2
+holdout_protocol: F2
+replicates: 1
+turn_cap: 4
+stability_reexecution_repeats: 3
+recommended_sequence:
+- Repair and seed the workbook.
+- Run the 4-task pilot pack across all 4 free models using F1.
+- After pilot prompts and logging are stable, run the 8-task main pack across all
+  4 free models using F2.
+- For each passing run, execute 3 re-execution stability checks.
+- Optionally run the 4-task holdout pack after the main analysis is complete.
+planned_trajectory_counts:
+  pilot_runs: 16
+  main_runs: 32
+  holdout_runs_optional: 16
+  main_plus_pilot_total: 48

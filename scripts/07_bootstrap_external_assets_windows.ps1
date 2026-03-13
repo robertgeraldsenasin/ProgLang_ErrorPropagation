@@ -5,7 +5,8 @@ param(
   [string]$Spider2LocalDbDriveId = "1coEVsCZq-Xvj9p2TnhBFoFTsY-UoYGmG",
   [switch]$RefreshSpider2,
   [switch]$RefreshLocalDb,
-  [switch]$SkipValidation
+  [switch]$SkipValidation,
+  [string]$Workbook = ".\workbook\Experiment_ProgLang_Error_Propagation_repo.xlsx"
 )
 
 $ErrorActionPreference = "Stop"
@@ -78,6 +79,12 @@ if (-not $SkipValidation) {
   Write-Step "Validating Spider2 layout"
   & $VenvPython scripts/02_validate_spider2_layout.py --spider2-root $Spider2RootResolved --show-local
 }
+
+Write-Step "Repairing workbook template"
+& $VenvPython scripts/09_repair_workbook.py --workbook $Workbook --spider2-root $Spider2RootResolved --populate-tasks
+
+Write-Step "Seeding workbook reference data for the free-model study"
+& $VenvPython scripts/10_seed_workbook_reference_data.py --workbook $Workbook --spider2-root $Spider2RootResolved
 
 Write-Step "Bootstrap complete"
 Write-Host "Spider2 root: $Spider2RootResolved"
